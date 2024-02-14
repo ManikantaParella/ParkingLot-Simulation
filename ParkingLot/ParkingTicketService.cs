@@ -14,25 +14,25 @@ namespace ParkingLotSimulation
         private int SlotNumber;
         private DateTime InTime;
         private DateTime OutTime;
-        public ParkingTicketService(string vehicleNumber, string vehicleType, int slotNumber,DateTime inTime,DateTime outTime) 
+        public ParkingTicketService(ParkingTicket ticketDetails) 
         {
-            VehicleNumber = vehicleNumber;
-            VehicleType = vehicleType;
-            SlotNumber = slotNumber;
-            InTime = inTime;
-            OutTime = outTime;
+            VehicleNumber = ticketDetails.VehicleNumber;
+            VehicleType = ticketDetails.VehicleType;
+            SlotNumber = ticketDetails.SlotNumber;
+            InTime = ticketDetails.InTime;
+            OutTime = ticketDetails.OutTime;
           
         }
         public void DisplayTicket()
         {
            
-            Console.WriteLine("-------------------------------------");
-            Console.WriteLine($"| Vehicle Number : {VehicleNumber}");
-            Console.WriteLine($"| Vehicle Type : {VehicleType}");
-            Console.WriteLine($"| Slot Number : {SlotNumber}");
-            Console.WriteLine($"| InTime : {InTime}");
-            Console.WriteLine($"| OutTime : {OutTime}");
-            Console.WriteLine("-------------------------------------\n");
+            Console.WriteLine(Messages.Dash);
+            Console.WriteLine($"| {Messages.VehicleNumber} : {VehicleNumber}");
+            Console.WriteLine($"| {Messages.VehicleType} : {VehicleType}");
+            Console.WriteLine($"| {Messages.SlotNumber} : {SlotNumber}");
+            Console.WriteLine($"| {Messages.InTime}  : {InTime}");
+            Console.WriteLine($"| {Messages.OutTime}  : {OutTime}");
+            Console.WriteLine($"{Messages.Dash}\n");
         }
         
     }

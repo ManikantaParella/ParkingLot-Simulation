@@ -23,15 +23,5 @@ namespace ParkingLotSimulation
             OutTime = outTime;
         }
 
-        public void DisplayTicket()
-        {
-            Console.WriteLine("-------------------------------------");
-            Console.WriteLine($"| Vehicle Number : {VehicleNumber}");
-            Console.WriteLine($"| Vehicle Type : {VehicleType}");
-            Console.WriteLine($"| Slot Number : {SlotNumber}");
-            Console.WriteLine($"| InTime : {InTime}");
-            Console.WriteLine($"| OutTime : {OutTime}");
-            Console.WriteLine("-------------------------------------\n");
-        }
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Model;
 
 namespace ParkingLotSimulation
 {
@@ -11,7 +12,7 @@ namespace ParkingLotSimulation
         private int twoWheelerCapacity;
         private int fourWheelerCapacity;
         private int heavyVehicleCapacity;
-        private string? vehicleTypeName;
+        private string vehicleTypeName;
         private List<IParkingSlot> twoWheelerSlots;
         private List<IParkingSlot> fourWheelerSlots;
         private List<IParkingSlot> heavyVehicleSlots;
@@ -33,7 +34,7 @@ namespace ParkingLotSimulation
         private void InitializeParkingSlots()
         {
             for (int i = 0; i < twoWheelerCapacity; i++)
-            {   
+            {
                 twoWheelerSlots.Add(new ParkingSlot());
             }
             for (int i = 0; i < fourWheelerCapacity; i++)
@@ -48,12 +49,12 @@ namespace ParkingLotSimulation
 
         public void CheckOccupancyDetails()
         {
-            Console.WriteLine("Current occupancy details:");
-            Console.WriteLine("-------------------------------------");
-            Console.WriteLine($"2-wheeler slots: {GetOccupiedSlotsCount(twoWheelerSlots)} occupied, {twoWheelerCapacity - GetOccupiedSlotsCount(twoWheelerSlots)} available");
-            Console.WriteLine($"4-wheeler slots: {GetOccupiedSlotsCount(fourWheelerSlots)} occupied, {fourWheelerCapacity - GetOccupiedSlotsCount(fourWheelerSlots)} available");
-            Console.WriteLine($"Heavy vehicle slots: {GetOccupiedSlotsCount(heavyVehicleSlots)} occupied, {heavyVehicleCapacity - GetOccupiedSlotsCount(heavyVehicleSlots)} available");
-            Console.WriteLine("-------------------------------------\n");
+            Console.WriteLine(Messages.OccupancyDetails);
+            Console.WriteLine(Messages.Dash);
+            Console.WriteLine($"{Messages.TwoWheelerSlots}: {GetOccupiedSlotsCount(twoWheelerSlots)} {Messages.Occupied}, {twoWheelerCapacity - GetOccupiedSlotsCount(twoWheelerSlots)} {Messages.Available}");
+            Console.WriteLine($"{Messages.FourWheelerSlots}: {GetOccupiedSlotsCount(fourWheelerSlots)} {Messages.Occupied}, {fourWheelerCapacity - GetOccupiedSlotsCount(fourWheelerSlots)} {Messages.Available}");
+            Console.WriteLine($"{Messages.HeavyVehicleSlots}: {GetOccupiedSlotsCount(heavyVehicleSlots)} {Messages.Occupied}, {heavyVehicleCapacity - GetOccupiedSlotsCount(heavyVehicleSlots)} {Messages.Available}");
+            Console.WriteLine($"{Messages.Dash}\n");
         }
 
         private int GetOccupiedSlotsCount(List<IParkingSlot> slots)
@@ -63,36 +64,38 @@ namespace ParkingLotSimulation
 
         private void ParkVehicle(string vehicleNumber, DateTime inTime, List<IParkingSlot> slots)
         {
-            IParkingSlot slot = slots.FirstOrDefault(s => !s.IsOccupied);
+            IParkingSlot? slot = slots.FirstOrDefault(s => !s.IsOccupied);
             if (slot != null)
             {
                 slot.Park(vehicleNumber);
                 vehicleParkingTimes.Add(vehicleNumber, inTime);
-                ParkingTicketService ticket = new ParkingTicketService(vehicleNumber, vehicleTypeName, slots.IndexOf(slot) + 1, DateTime.Now, DateTime.MinValue);
+                ParkingTicket ticketDetails = new ParkingTicket(vehicleNumber, vehicleTypeName, slots.IndexOf(slot) + 1, DateTime.Now, DateTime.MinValue);
+                ParkingTicketService ticket = new ParkingTicketService(ticketDetails);
                 ticket.DisplayTicket();
-                Console.WriteLine($"Vehicle {vehicleNumber} parked at slot {slots.IndexOf(slot) + 1}");
+                Console.WriteLine(Messages.VehicleParked(vehicleNumber, slots.IndexOf(slot) + 1));
             }
             else
             {
-                Console.WriteLine("No available slots.");
+                Console.WriteLine(Messages.NoAvailableSlots);
             }
         }
 
         private void UnparkVehicle(string vehicleNumber, List<IParkingSlot> slots)
         {
-            IParkingSlot slot = slots.FirstOrDefault(s => s.IsOccupied && ((ParkingSlot)s).VehicleNumber == vehicleNumber);
+            IParkingSlot? slot = slots.FirstOrDefault(s => s.IsOccupied && ((ParkingSlot)s).VehicleNumber == vehicleNumber);
             DateTime inTime = vehicleParkingTimes[vehicleNumber];
             vehicleParkingTimes.Remove(vehicleNumber);
             if (slot != null)
             {
                 slot.Unpark();
-                ParkingTicketService ticket = new ParkingTicketService(vehicleNumber, vehicleTypeName, slots.IndexOf(slot) + 1, inTime, DateTime.Now);
+                ParkingTicket ticketDetails = new ParkingTicket(vehicleNumber, vehicleTypeName, slots.IndexOf(slot) + 1, inTime, DateTime.Now);
+                ParkingTicketService ticket = new ParkingTicketService(ticketDetails);
                 ticket.DisplayTicket();
-                Console.WriteLine($"Vehicle {vehicleNumber} unparked from slot {slots.IndexOf(slot) + 1}");
+                Console.WriteLine(Messages.VehicleUnParked(vehicleNumber, slots.IndexOf(slot) + 1));
             }
             else
             {
-                Console.WriteLine($"Vehicle {vehicleNumber} not found.");
+                Console.WriteLine(Messages.VehicleNotFound(vehicleNumber));
             }
         }
 
@@ -126,15 +129,11 @@ namespace ParkingLotSimulation
             UnparkVehicle(vehicleNumber, heavyVehicleSlots);
         }
 
-        public ParkingTicket? ParkVehicle(IVehicle vehicle)
+        public void ParkVehicle(IVehicle vehicle)
         {
-            Console.WriteLine($"Enter Vehicle Number: {vehicle.VehicleNumber}");
-            Console.WriteLine("Enter Vehicle Type (1.TwoWheeler/ 2.FourWheeler/ 3.HeavyVehicle):");
-            int vehicleType;
-            while (!int.TryParse(Console.ReadLine(), out vehicleType) || vehicleType < 1 || vehicleType > 3)
-            {
-                Console.WriteLine("Invalid input. Please enter a number between 1 and 3.");
-            }
+            Console.WriteLine($"{Messages.EnterVehicleNo}: {vehicle.VehicleNumber}");
+
+            int vehicleType = UserInterface.GetInput<int>(Messages.EnterVehicleType);
             DateTime inTime = DateTime.Now;
             switch (vehicleType)
             {
@@ -150,8 +149,11 @@ namespace ParkingLotSimulation
                     vehicleTypeName = "HeavyVehicle";
                     ParkHeavyVehicle(vehicle.VehicleNumber, inTime);
                     break;
+                default:
+                    Console.WriteLine(Messages.InvalidOption);
+                    break;
             }
-            return null;
+
         }
 
         public void UnparkVehicle(string vehicleNumber)
@@ -168,10 +170,10 @@ namespace ParkingLotSimulation
                     UnparkHeavyVehicle(vehicleNumber);
                     break;
                 default:
-                    Console.WriteLine("Invalid vehicle type.");
+                    Console.WriteLine(Messages.InvalidVehicleType);
                     break;
             }
-            Console.WriteLine($"Vehicle with number {vehicleNumber} unparked at {DateTime.Now}.");
+            Console.WriteLine(Messages.VehicleUnparkedTime(vehicleNumber, DateTime.Now));
         }
     }
 }
