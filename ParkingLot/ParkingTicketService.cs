@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Model;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
@@ -10,7 +11,7 @@ namespace ParkingLotSimulation
     public class ParkingTicketService
     {
         private string VehicleNumber;
-        private string VehicleType;
+        private VehicleType VehicleType;
         private int SlotNumber;
         private DateTime InTime;
         private DateTime OutTime;

@@ -10,7 +10,8 @@ namespace Model
     {
         bool IsOccupied { get; }
         string VehicleNumber { get; set; }
-        void Park(string vehicleNumber);
+        VehicleType VehicleType { get; set; }
+        void Park(string vehicleNumber , VehicleType VehicleType);
         void Unpark();
     }
 }

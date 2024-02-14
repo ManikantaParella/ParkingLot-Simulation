@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Model;
+using static System.Reflection.Metadata.BlobBuilder;
 
 namespace ParkingLotSimulation
 {
@@ -12,38 +13,27 @@ namespace ParkingLotSimulation
         private int twoWheelerCapacity;
         private int fourWheelerCapacity;
         private int heavyVehicleCapacity;
-        private string vehicleTypeName;
-        private List<IParkingSlot> twoWheelerSlots;
-        private List<IParkingSlot> fourWheelerSlots;
-        private List<IParkingSlot> heavyVehicleSlots;
-        private Dictionary<string, DateTime> vehicleParkingTimes;
+        private VehicleType vehicleTypeName;
+        private int totalVehicleSlots;
+        private List<IParkingSlot> vehicleParkingSlots;
+        private List<ParkingTicket> ParkingTickets;
 
         public ParkingLot(int numTwoWheelerSlots, int numFourWheelerSlots, int numHeavyVehicleSlots)
         {
             twoWheelerCapacity = numTwoWheelerSlots;
             fourWheelerCapacity = numFourWheelerSlots;
             heavyVehicleCapacity = numHeavyVehicleSlots;
-            twoWheelerSlots = new List<IParkingSlot>();
-            fourWheelerSlots = new List<IParkingSlot>();
-            heavyVehicleSlots = new List<IParkingSlot>();
-            vehicleParkingTimes = new Dictionary<string, DateTime>();
-
+            totalVehicleSlots = numTwoWheelerSlots+numFourWheelerSlots+numHeavyVehicleSlots;
+            vehicleParkingSlots = new List<IParkingSlot>();
+            ParkingTickets = new List<ParkingTicket>();
             InitializeParkingSlots();
         }
 
         private void InitializeParkingSlots()
         {
-            for (int i = 0; i < twoWheelerCapacity; i++)
+            for (int i = 1; i <= totalVehicleSlots; i++)
             {
-                twoWheelerSlots.Add(new ParkingSlot());
-            }
-            for (int i = 0; i < fourWheelerCapacity; i++)
-            {
-                fourWheelerSlots.Add(new ParkingSlot());
-            }
-            for (int i = 0; i < heavyVehicleCapacity; i++)
-            {
-                heavyVehicleSlots.Add(new ParkingSlot());
+                vehicleParkingSlots.Add(new ParkingSlot());
             }
         }
 
@@ -51,25 +41,29 @@ namespace ParkingLotSimulation
         {
             Console.WriteLine(Messages.OccupancyDetails);
             Console.WriteLine(Messages.Dash);
-            Console.WriteLine($"{Messages.TwoWheelerSlots}: {GetOccupiedSlotsCount(twoWheelerSlots)} {Messages.Occupied}, {twoWheelerCapacity - GetOccupiedSlotsCount(twoWheelerSlots)} {Messages.Available}");
-            Console.WriteLine($"{Messages.FourWheelerSlots}: {GetOccupiedSlotsCount(fourWheelerSlots)} {Messages.Occupied}, {fourWheelerCapacity - GetOccupiedSlotsCount(fourWheelerSlots)} {Messages.Available}");
-            Console.WriteLine($"{Messages.HeavyVehicleSlots}: {GetOccupiedSlotsCount(heavyVehicleSlots)} {Messages.Occupied}, {heavyVehicleCapacity - GetOccupiedSlotsCount(heavyVehicleSlots)} {Messages.Available}");
+            Console.WriteLine($"{Messages.TwoWheelerSlots}: {GetOccupiedSlotsCount(VehicleType.TwoWheeler)} {Messages.Occupied}, {twoWheelerCapacity - GetOccupiedSlotsCount(VehicleType.TwoWheeler)} {Messages.Available}");
+            Console.WriteLine($"{Messages.FourWheelerSlots}: {GetOccupiedSlotsCount(VehicleType.FourWheeler)} {Messages.Occupied}, {fourWheelerCapacity - GetOccupiedSlotsCount(VehicleType.FourWheeler)} {Messages.Available}");
+            Console.WriteLine($"{Messages.HeavyVehicleSlots}: {GetOccupiedSlotsCount(VehicleType.HeavyVehicle)} {Messages.Occupied}, {heavyVehicleCapacity - GetOccupiedSlotsCount(VehicleType.HeavyVehicle)} {Messages.Available}");
             Console.WriteLine($"{Messages.Dash}\n");
         }
 
-        private int GetOccupiedSlotsCount(List<IParkingSlot> slots)
+        private int GetOccupiedSlotsCount(VehicleType vehicleType)
         {
-            return slots.Count(slot => slot.IsOccupied);
+            return vehicleParkingSlots.Count(slot => slot.IsOccupied && ((ParkingSlot)slot).VehicleType==vehicleType);
         }
 
-        private void ParkVehicle(string vehicleNumber, DateTime inTime, List<IParkingSlot> slots)
-        {
+       
+
+        private void ParkVehicle(string vehicleNumber,VehicleType vehicleType, DateTime inTime, List<IParkingSlot> slots)
+        {   
+            Console.WriteLine(slots.Count);
             IParkingSlot? slot = slots.FirstOrDefault(s => !s.IsOccupied);
+            Console.WriteLine(vehicleType);
             if (slot != null)
             {
-                slot.Park(vehicleNumber);
-                vehicleParkingTimes.Add(vehicleNumber, inTime);
+                slot.Park(vehicleNumber,vehicleType);
                 ParkingTicket ticketDetails = new ParkingTicket(vehicleNumber, vehicleTypeName, slots.IndexOf(slot) + 1, DateTime.Now, DateTime.MinValue);
+                ParkingTickets.Add(ticketDetails);
                 ParkingTicketService ticket = new ParkingTicketService(ticketDetails);
                 ticket.DisplayTicket();
                 Console.WriteLine(Messages.VehicleParked(vehicleNumber, slots.IndexOf(slot) + 1));
@@ -83,8 +77,9 @@ namespace ParkingLotSimulation
         private void UnparkVehicle(string vehicleNumber, List<IParkingSlot> slots)
         {
             IParkingSlot? slot = slots.FirstOrDefault(s => s.IsOccupied && ((ParkingSlot)s).VehicleNumber == vehicleNumber);
-            DateTime inTime = vehicleParkingTimes[vehicleNumber];
-            vehicleParkingTimes.Remove(vehicleNumber);
+            ParkingTicket? ticketCollection = ParkingTickets.FirstOrDefault(s => s.VehicleNumber == vehicleNumber);
+            DateTime inTime = ticketCollection.InTime;
+            ParkingTickets.Remove(ticketCollection);
             if (slot != null)
             {
                 slot.Unpark();
@@ -99,34 +94,37 @@ namespace ParkingLotSimulation
             }
         }
 
-        public void ParkTwoWheeler(string vehicleNumber, DateTime inTime)
+        public void ParkTwoWheeler(string vehicleNumber,VehicleType vehicleType, DateTime inTime)
         {
-            ParkVehicle(vehicleNumber, inTime, twoWheelerSlots);
+            List<IParkingSlot> twoWheelerSlots = vehicleParkingSlots.Take(twoWheelerCapacity).Where(slot => !slot.IsOccupied).ToList();
+            ParkVehicle(vehicleNumber, vehicleType, inTime, twoWheelerSlots);
+
         }
 
-        public void ParkFourWheeler(string vehicleNumber, DateTime inTime)
+        public void ParkFourWheeler(string vehicleNumber, VehicleType vehicleType, DateTime inTime)
         {
-            ParkVehicle(vehicleNumber, inTime, fourWheelerSlots);
+            List<IParkingSlot> fourWheelerSlots = vehicleParkingSlots.Skip(twoWheelerCapacity).Take(fourWheelerCapacity).Where(slot => !slot.IsOccupied).ToList();
+            ParkVehicle(vehicleNumber, vehicleType, inTime, fourWheelerSlots);
         }
 
-        public void ParkHeavyVehicle(string vehicleNumber, DateTime inTime)
-        {
-            ParkVehicle(vehicleNumber, inTime, heavyVehicleSlots);
+        public void ParkHeavyVehicle(string vehicleNumber, VehicleType vehicleType, DateTime inTime)
+        {   List<IParkingSlot> heavyVehicleSlots = vehicleParkingSlots.Skip(twoWheelerCapacity+fourWheelerCapacity).Take(heavyVehicleCapacity).Where(slot => !slot.IsOccupied).ToList();
+            ParkVehicle(vehicleNumber, vehicleType, inTime, heavyVehicleSlots);
         }
 
         public void UnparkTwoWheeler(string vehicleNumber)
         {
-            UnparkVehicle(vehicleNumber, twoWheelerSlots);
+            UnparkVehicle(vehicleNumber, vehicleParkingSlots);
         }
 
         public void UnparkFourWheeler(string vehicleNumber)
         {
-            UnparkVehicle(vehicleNumber, fourWheelerSlots);
+            UnparkVehicle(vehicleNumber, vehicleParkingSlots);
         }
 
         public void UnparkHeavyVehicle(string vehicleNumber)
         {
-            UnparkVehicle(vehicleNumber, heavyVehicleSlots);
+            UnparkVehicle(vehicleNumber, vehicleParkingSlots);
         }
 
         public void ParkVehicle(IVehicle vehicle)
@@ -135,19 +133,20 @@ namespace ParkingLotSimulation
 
             int vehicleType = UserInterface.GetInput<int>(Messages.EnterVehicleType);
             DateTime inTime = DateTime.Now;
+
             switch (vehicleType)
             {
                 case 1:
-                    vehicleTypeName = "TwoWheeler";
-                    ParkTwoWheeler(vehicle.VehicleNumber, inTime);
+                    vehicleTypeName = VehicleType.TwoWheeler;
+                    ParkTwoWheeler(vehicle.VehicleNumber,vehicleTypeName, inTime);
                     break;
                 case 2:
-                    vehicleTypeName = "FourWheeler";
-                    ParkFourWheeler(vehicle.VehicleNumber, inTime);
+                    vehicleTypeName = VehicleType.FourWheeler;
+                    ParkFourWheeler(vehicle.VehicleNumber, vehicleTypeName, inTime);
                     break;
                 case 3:
-                    vehicleTypeName = "HeavyVehicle";
-                    ParkHeavyVehicle(vehicle.VehicleNumber, inTime);
+                    vehicleTypeName = VehicleType.HeavyVehicle;
+                    ParkHeavyVehicle(vehicle.VehicleNumber, vehicleTypeName, inTime);
                     break;
                 default:
                     Console.WriteLine(Messages.InvalidOption);
@@ -158,15 +157,15 @@ namespace ParkingLotSimulation
 
         public void UnparkVehicle(string vehicleNumber)
         {
-            switch (vehicleTypeName.ToLower())
+            switch (vehicleTypeName)
             {
-                case "twowheeler":
+                case VehicleType.TwoWheeler:
                     UnparkTwoWheeler(vehicleNumber);
                     break;
-                case "fourwheeler":
+                case VehicleType.FourWheeler:
                     UnparkFourWheeler(vehicleNumber);
                     break;
-                case "heavyvehicle":
+                case VehicleType.HeavyVehicle:
                     UnparkHeavyVehicle(vehicleNumber);
                     break;
                 default:
