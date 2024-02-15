@@ -76,12 +76,14 @@ namespace ParkingLotSimulation
 
         private void UnparkVehicle(string vehicleNumber, List<IParkingSlot> slots)
         {
+           
             IParkingSlot? slot = slots.FirstOrDefault(s => s.IsOccupied && ((ParkingSlot)s).VehicleNumber == vehicleNumber);
-            ParkingTicket? ticketCollection = ParkingTickets.FirstOrDefault(s => s.VehicleNumber == vehicleNumber);
-            DateTime inTime = ticketCollection.InTime;
-            ParkingTickets.Remove(ticketCollection);
+           
             if (slot != null)
             {
+                ParkingTicket? ticketCollection = ParkingTickets.FirstOrDefault(s => s.VehicleNumber == vehicleNumber);
+                DateTime inTime = ticketCollection.InTime;
+                ParkingTickets.Remove(ticketCollection);
                 slot.Unpark();
                 ParkingTicket ticketDetails = new ParkingTicket(vehicleNumber, vehicleTypeName, slots.IndexOf(slot) + 1, inTime, DateTime.Now);
                 ParkingTicketService ticket = new ParkingTicketService(ticketDetails);
@@ -108,23 +110,9 @@ namespace ParkingLotSimulation
         }
 
         public void ParkHeavyVehicle(string vehicleNumber, VehicleType vehicleType, DateTime inTime)
-        {   List<IParkingSlot> heavyVehicleSlots = vehicleParkingSlots.Skip(twoWheelerCapacity+fourWheelerCapacity).Take(heavyVehicleCapacity).Where(slot => !slot.IsOccupied).ToList();
+        {  
+            List<IParkingSlot> heavyVehicleSlots = vehicleParkingSlots.Skip(twoWheelerCapacity+fourWheelerCapacity).Take(heavyVehicleCapacity).Where(slot => !slot.IsOccupied).ToList();
             ParkVehicle(vehicleNumber, vehicleType, inTime, heavyVehicleSlots);
-        }
-
-        public void UnparkTwoWheeler(string vehicleNumber)
-        {
-            UnparkVehicle(vehicleNumber, vehicleParkingSlots);
-        }
-
-        public void UnparkFourWheeler(string vehicleNumber)
-        {
-            UnparkVehicle(vehicleNumber, vehicleParkingSlots);
-        }
-
-        public void UnparkHeavyVehicle(string vehicleNumber)
-        {
-            UnparkVehicle(vehicleNumber, vehicleParkingSlots);
         }
 
         public void ParkVehicle(IVehicle vehicle)
@@ -157,22 +145,9 @@ namespace ParkingLotSimulation
 
         public void UnparkVehicle(string vehicleNumber)
         {
-            switch (vehicleTypeName)
-            {
-                case VehicleType.TwoWheeler:
-                    UnparkTwoWheeler(vehicleNumber);
-                    break;
-                case VehicleType.FourWheeler:
-                    UnparkFourWheeler(vehicleNumber);
-                    break;
-                case VehicleType.HeavyVehicle:
-                    UnparkHeavyVehicle(vehicleNumber);
-                    break;
-                default:
-                    Console.WriteLine(Messages.InvalidVehicleType);
-                    break;
-            }
-            Console.WriteLine(Messages.VehicleUnparkedTime(vehicleNumber, DateTime.Now));
+
+            UnparkVehicle(vehicleNumber, vehicleParkingSlots);
+       
         }
     }
 }
